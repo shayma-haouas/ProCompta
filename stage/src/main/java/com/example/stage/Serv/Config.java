@@ -23,7 +23,54 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class Config {
+
+
+
+
+
+    private final UserRepo userRepo;
+
+    public Config(UserRepo userRepo) {
+        this.userRepo = userRepo;
+    }
+
     @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .authorizeHttpRequests(authorizeRequests -> authorizeRequests
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/client/**").hasRole("CLIENT")
+                        .requestMatchers("/api/users/register").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .formLogin(Customizer.withDefaults())
+                .logout(logout -> logout
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                )
+                .csrf(csrf -> csrf.disable());
+
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return email -> userRepo.findByEmail(email)
+                .map(CustomUserDetails::new)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+    }
+}
+
+
+
+
+
+    /*@Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
@@ -52,7 +99,7 @@ public class Config {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }
 
-}
+}*/
 
 
 
